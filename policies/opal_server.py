@@ -1,50 +1,38 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, HTTPException
+import json
+import os
 from pydantic import BaseModel
 
 app = FastAPI()
 
-# Example data for policies; replace with your actual policy logic
-policies = {
-    "work_policy": {
-        "id": "work_policy",
-        "description": "This is an work policy.",
-        "rules": {
-            "allow": ["read"],
-            "deny": ["write"]
-        }
-    }
-}
+# Define a model for webhook requests
+class WebhookEvent(BaseModel):
+    ref: str
+    commits: list
+    repository: dict
 
-# Define a model for policy requests
-class PolicyRequest(BaseModel):
-    policy_id: str
-    action: str
+# Define a policy update function
+def update_policies():
+    # Your logic to update policies goes here
+    # For example, pull latest policies from GitHub or reloading policies
+    print("Updating policies from GitHub...")
+    # Implementation depends on your policy storage and retrieval logic
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the OPAL server"}
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    payload = await request.json()
+    # Optionally verify the webhook secret if you set one up
+    # secret = request.headers.get("X-Hub-Signature")
+    # Verify the signature here if necessary
 
-@app.get("/policies/{policy_id}")
-def get_policy(policy_id: str):
-    if policy_id in policies:
-        return policies[policy_id]
+    # Handle the payload
+    event_type = request.headers.get("X-GitHub-Event")
+    if event_type == "push":
+        update_policies()  # Call your policy update logic
+        return {"message": "Policies updated"}, 200
     else:
-        raise HTTPException(status_code=404, detail="Policy not found")
+        raise HTTPException(status_code=400, detail="Event type not supported")
 
-@app.post("/evaluate")
-def evaluate_policy(request: PolicyRequest):
-    policy = policies.get(request.policy_id)
-    if policy:
-        if request.action in policy["rules"].get("allow", []):
-            return {"result": "allowed"}
-        elif request.action in policy["rules"].get("deny", []):
-            return {"result": "denied"}
-        else:
-            return {"result": "unknown action"}
-    else:
-        raise HTTPException(status_code=404, detail="Policy not found")
-
-# If running this script directly, use Uvicorn to serve the FastAPI app
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7002)

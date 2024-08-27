@@ -1,3 +1,4 @@
 opal-server
+opal-client
 fastapi
 uvicorn
