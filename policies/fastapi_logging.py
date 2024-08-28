@@ -13,6 +13,13 @@ def read_root():
     logger.info("Root endpoint accessed")
     return {"message": "Welcome to the OPAL server"}
 
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    payload = await request.json()
+    print(f"Received payload: {payload}")
+    # Further processing here...
+    return {"message": "Received"}
+
 @app.get("/policies/{policy_id}")
 def get_policy(policy_id: str):
     logger.info(f"Fetching policy {policy_id}")
